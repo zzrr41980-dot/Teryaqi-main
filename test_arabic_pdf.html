@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تِرياقي - اختبار PDF عربي</title>
+    <link rel="icon" type="image/png" href="logotregy.png">
+
+    <!-- jsPDF UMD Core FIRST (Avoid UMD Poisoning) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>window.jsPDF = window.jspdf.jsPDF;</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: #ecfdf5;
+            padding: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-xl border border-emerald-100">
+        <h2 class="text-2xl font-900 text-emerald-900 mb-6 text-center">اختبار قالب التقرير</h2>
+
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs font-bold text-emerald-700">اسم الدواء</label>
+                <input type="text" id="t-med" value="بانادول (أدفانس)"
+                    class="w-full bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-emerald-700">الجرعة المقررة</label>
+                <input type="text" id="t-dosage" value="حبة واحدة كحد أقصى"
+                    class="w-full bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-emerald-700">اسم الطبيب</label>
+                <input type="text" id="t-doc" value="د. محمد عبدالله"
+                    class="w-full bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-emerald-700">اسم العيادة</label>
+                <input type="text" id="t-clinic" value="عيادة النور الطبية"
+                    class="w-full bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-emerald-700">مدة العلاج</label>
+                <input type="text" id="t-dur" value="أسبوعين (14 يوم)"
+                    class="w-full bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-emerald-700">المخزون المتبقي</label>
+                <input type="number" id="t-stock" value="15"
+                    class="w-full bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+            </div>
+
+            <button onclick="generateTestPDF()" id="pdf-btn"
+                class="w-full mt-6 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition">
+                تجربة إنشاء التقرير 📄
+            </button>
+            <p id="status-text" class="text-center text-xs text-orange-600 mt-3 font-bold"></p>
+        </div>
+    </div>
+
+    <script>
+        // Strategy: Dynamically fetch an Arabic font (Amiri) and convert it to Base64 using native FileReader
+        // This avoids byte-level mapping corruption and bloating the HTML file.
+        async function fetchFontAsBase64(url) {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Network response was not OK for font fetch");
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    // Extract exactly the Base64 sequence, stripping the data URI prefix
+                    const base64data = reader.result.split(',')[1];
+                    resolve(base64data);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // By loading the font with strict 'Identity-H' metrics, jsPDF naturally maps the byte-tables.
+        // We defer to the library's native glyph processing instead of manually reversing arrays,
+        // which completely shatters the natural Arabic Bidirectional (BIDI) space indexing.
+
+        async function generateTestPDF() {
+            const btn = document.getElementById('pdf-btn');
+            const status = document.getElementById('status-text');
+            btn.disabled = true;
+            status.innerText = "جاري تحميل قاموس الخطوط العربية...";
+
+            try {
+                // 1. Fetch Amiri font natively via precise Raw endpoint
+                const safeTtfUrl = 'https://cdn.jsdelivr.net/gh/aliftype/amiri@master/fonts/Amiri-Regular.ttf';
+                const fontBase64 = await fetchFontAsBase64(safeTtfUrl);
+
+                status.innerText = "جاري هندسة وتصميم القالب...";
+
+                // 2. Init jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+
+                // 3. Mount Arabic Font explicitly
+                doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
+                // Explicitly bind 'Identity-H' encoded mappings so JS extracts width metrics accurately
+                doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal', 'Identity-H');
+                doc.setFont('Amiri', 'normal');
+
+                // 4. Data Scrape (Include new Dosage field)
+                const med = document.getElementById('t-med').value;
+                const dosage = document.getElementById('t-dosage').value;
+                const docName = document.getElementById('t-doc').value;
+                const clinic = document.getElementById('t-clinic').value;
+                const duration = document.getElementById('t-dur').value;
+                const stock = document.getElementById('t-stock').value;
+
+                // Header (Emerald Box)
+                doc.setFillColor(6, 95, 70);
+                doc.rect(0, 0, 210, 45, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(26);
+                doc.text("تقرير المعالجة الطبي - تِرياقي", 105, 28, { align: 'center' });
+
+                // 5. Luxury AutoTable Generation
+                doc.autoTable({
+                    startY: 60,
+                    theme: 'grid',
+                    head: [[{ content: "تفاصيل الوصفة الطبية", colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fontSize: 18, fillColor: [6, 95, 70] } }]],
+                    body: [
+                        [med, 'اسم الدواء'],
+                        [dosage, 'الجرعة المقررة'],
+                        [docName, 'الطبيب المعالج'],
+                        [clinic, 'اسم العيادة/المركز'],
+                        [duration, 'مدة العلاج'],
+                        [`${stock} حبة`, 'المخزون المتبقي']
+                    ],
+                    styles: {
+                        font: 'Amiri', // Explicitly binding our VFS Metric Table
+                        halign: 'right', // Forces textual flow rightwards natively
+                        fontSize: 14,
+                        cellPadding: 7,
+                        textColor: [30, 41, 59],
+                        lineColor: [16, 185, 129], // Emerald-500
+                        lineWidth: 0.5
+                    },
+                    columnStyles: {
+                        0: { halign: 'right', cellWidth: 100 }, // Value Column
+                        1: { halign: 'right', fontStyle: 'bold', fillColor: [240, 253, 244], textColor: [6, 95, 70], cellWidth: 70 } // Key Column (Emerald-50 backdrop)
+                    },
+                    margin: { left: 20, right: 20 }
+                });
+
+                // Footer Note dynamically appended after the table draws
+                const finalY = doc.lastAutoTable.finalY + 30; // Find where the table ended
+                doc.setFontSize(12);
+                doc.setTextColor(156, 163, 175);
+                doc.text("تم إنشاء وإصدار هذا التقرير داخلياً من نظام الإشعارات", 105, finalY, { align: 'center' });
+
+                // 6. Generate BloB
+                doc.save("Teryaqi_Arabic_Test.pdf");
+                status.innerText = "تم تنزيل النموذج المبدئي بنجاح ✅";
+            } catch (err) {
+                console.error(err);
+                status.innerText = "حدث خطأ: " + err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تِرياقي — نظام مراقبة الدواء الذكي</title>
+    <meta name="description" content="تِرياقي — نظام ذكي لمراقبة الأدوية وجدولة الجرعات وتتبع المخزون الدوائي">
+    <link rel="icon" type="image/png" href="logotregy.png">
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        *{font-family:'Tajawal',sans-serif;box-sizing:border-box}
+        html{scroll-behavior:smooth}
+
+        /* ── Gradients ── */
+        .hero-gradient{background:linear-gradient(160deg,#0d9488 0%,#065f46 45%,#064e3b 100%)}
+        .cta-gradient{background:linear-gradient(135deg,#065f46 0%,#0d9488 100%)}
+
+        /* ── Floating Blobs ── */
+        .blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18;pointer-events:none}
+        .blob-1{width:400px;height:400px;background:#34d399;top:-100px;left:-100px;animation:drift 8s ease-in-out infinite}
+        .blob-2{width:350px;height:350px;background:#2dd4bf;bottom:-80px;right:-60px;animation:drift 10s ease-in-out infinite reverse}
+        .blob-3{width:250px;height:250px;background:#6ee7b7;top:40%;left:50%;animation:drift 12s ease-in-out infinite}
+        @keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-30px)}}
+
+        /* ── Logo Float ── */
+        .float-anim{animation:floatY 3s ease-in-out infinite}
+        @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+        /* ── Scroll Reveal ── */
+        .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
+        .reveal.visible{opacity:1;transform:translateY(0)}
+
+        /* ── Feature Cards ── */
+        .feat-card{background:rgba(255,255,255,.97);border-radius:24px;padding:2rem;box-shadow:0 8px 32px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.04);transition:transform .3s,box-shadow .3s}
+        .feat-card:hover{transform:translateY(-6px);box-shadow:0 16px 48px rgba(0,0,0,.1)}
+
+        /* ── Precaution Cards ── */
+        .prec-card{background:rgba(255,255,255,.95);padding:1.25rem;border-radius:20px;box-shadow:0 4px 16px rgba(0,0,0,.05);transition:transform .25s}
+        .prec-card:hover{transform:translateY(-4px)}
+
+        /* ── Modal ── */
+        .modal-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .35s}
+        .modal-overlay.active{opacity:1;pointer-events:auto}
+        .modal-card{background:rgba(255,255,255,.98);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.5);border-radius:28px;padding:2.5rem;width:calc(100% - 2rem);max-width:460px;box-shadow:0 24px 64px rgba(0,0,0,.2);transform:scale(.92) translateY(16px);transition:transform .35s}
+        .modal-overlay.active .modal-card{transform:scale(1) translateY(0)}
+
+        /* ── Inputs ── */
+        .auth-input{width:100%;padding:.8rem 1rem;border-radius:14px;border:2px solid #e5e7eb;font-size:.9rem;outline:none;transition:border-color .2s}
+        .auth-input:focus{border-color:#0d9488}
+
+        /* ── Buttons ── */
+        .btn-primary{background:linear-gradient(135deg,#0d9488,#065f46);color:#fff;padding:.85rem 2rem;border-radius:16px;font-weight:700;font-size:.95rem;border:none;cursor:pointer;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 16px rgba(13,148,136,.35)}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(13,148,136,.45)}
+        .btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none}
+        .btn-outline{background:transparent;color:#fff;padding:.85rem 2rem;border-radius:16px;font-weight:700;font-size:.95rem;border:2px solid rgba(255,255,255,.4);cursor:pointer;transition:background .2s}
+        .btn-outline:hover{background:rgba(255,255,255,.12)}
+
+        /* ── Nav ── */
+        .nav-bar{position:fixed;top:0;left:0;right:0;z-index:500;padding:1rem 2rem;transition:background .3s,box-shadow .3s}
+        .nav-bar.scrolled{background:rgba(6,78,59,.95);backdrop-filter:blur(12px);box-shadow:0 4px 20px rgba(0,0,0,.15)}
+
+        /* ── Scroll Arrow ── */
+        .scroll-arrow{animation:bounce 2s infinite}
+        @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+    </style>
+</head>
+<body class="bg-gray-50 overflow-x-hidden">
+
+<!-- ══════════════ NAVIGATION ══════════════ -->
+<nav id="main-nav" class="nav-bar">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-20 h-20 rounded-2xl flex items-center justify-center">
+                <img src="logotregy.png" alt="Teryaqi Logo" class="w-20 h-20 object-contain">
+            </div>
+            <span class="text-white text-3xl font-extrabold">تِرياقي</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="openModal('login')" class="px-5 py-2 rounded-xl text-white text-sm font-bold border border-white/30 hover:bg-white/10 transition">تسجيل الدخول</button>
+            <button onclick="openModal('register')" class="px-5 py-2 rounded-xl bg-white text-emerald-800 text-sm font-extrabold hover:bg-emerald-50 transition shadow-lg">حساب جديد</button>
+        </div>
+    </div>
+</nav>
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="hero-gradient relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="relative z-10 text-center px-6 max-w-3xl mx-auto">
+        <div class="w-28 h-28 mx-auto mb-6 rounded-3xl bg-white/15 flex items-center justify-center float-anim shadow-2xl border border-white/20">
+            <img src="logotregy.png" alt="Teryaqi Logo" class="w-20 h-20 object-contain">
+        </div>
+        <h1 class="text-5xl sm:text-6xl font-extrabold text-white mb-4 leading-tight">تِرياقي</h1>
+        <p class="text-emerald-200 text-xl sm:text-2xl font-bold mb-3">نظام مراقبة الدواء الذكي</p>
+        <p class="text-emerald-100/80 text-base sm:text-lg mb-10 leading-relaxed max-w-xl mx-auto">جدولة ذكية للأدوية، مراقبة مخزون تلقائية، تنبيهات فورية للجرعات الفائتة، وتقارير طبية احترافية — كل ذلك في مكان واحد.</p>
+        <div class="flex flex-wrap items-center justify-center gap-4">
+            <button onclick="openModal('register')" class="btn-primary text-base px-8 py-4">إنشاء حساب مجاني ←</button>
+            <button onclick="openModal('login')" class="btn-outline text-base">تسجيل الدخول</button>
+        </div>
+    </div>
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/50 scroll-arrow">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+    </div>
+</section>
+
+<!-- ══════════════ FEATURES ══════════════ -->
+<section id="features" class="py-24 px-6">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-16 reveal">
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-3">لماذا تِرياقي؟</h2>
+            <div class="w-20 h-1.5 bg-emerald-500 rounded-full mx-auto"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="feat-card reveal">
+                <div class="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-2xl mb-5">⏰</div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">جدولة ذكية</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">حدد مواعيد أدويتك بدقة واحصل على تذكيرات في الوقت المناسب تماماً.</p>
+            </div>
+            <div class="feat-card reveal">
+                <div class="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-2xl mb-5">📦</div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">مراقبة المخزون</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">تتبع عدد الحبوب المتبقية وتلقَّ تنبيهاً تلقائياً قبل نفاد الدواء.</p>
+            </div>
+            <div class="feat-card reveal">
+                <div class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-2xl mb-5">📊</div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">تقارير طبية</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">أنشئ تقارير PDF عربية احترافية بجميع تفاصيل الوصفة الطبية.</p>
+            </div>
+            <div class="feat-card reveal">
+                <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center text-2xl mb-5">🔔</div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">تنبيهات فورية</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">إشعارات ذكية للجرعات الفائتة مع إمكانية تأكيد التناول مباشرة.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════ PRECAUTIONS GUIDE ══════════════ -->
+<section id="precautions" class="py-24 px-6 bg-gradient-to-b from-emerald-50 to-white">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-16 reveal">
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-3">🛡️ دليل الاحترازات الطبية</h2>
+            <p class="text-gray-500 text-sm">نصائح طبية عامة لأكثر الحالات المزمنة شيوعاً</p>
+            <div class="w-20 h-1.5 bg-emerald-500 rounded-full mx-auto mt-4"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="prec-card border-r-4 border-blue-500 reveal">
+                <h4 class="font-bold text-blue-900 text-sm mb-1">1. ضغط الدم</h4>
+                <p class="text-[11px] text-gray-600">• مدرات البول: صباحاً لتجنب الأرق.<br>• تجنب الجريب فروت مع العلاج.</p>
+            </div>
+            <div class="prec-card border-r-4 border-purple-500 reveal">
+                <h4 class="font-bold text-purple-900 text-sm mb-1">2. خمول الغدة</h4>
+                <p class="text-[11px] text-gray-600">• الثايروكسين: فجراً على الريق.<br>• فصل الكالسيوم عنه 4 ساعات.</p>
+            </div>
+            <div class="prec-card border-r-4 border-emerald-500 reveal">
+                <h4 class="font-bold text-emerald-900 text-sm mb-1">3. السكري</h4>
+                <p class="text-[11px] text-gray-600">• الميتفورمين: بعد الأكل مباشرة.<br>• فحص السكر قبل جرعة الأنسولين.</p>
+            </div>
+            <div class="prec-card border-r-4 border-red-500 reveal">
+                <h4 class="font-bold text-red-900 text-sm mb-1">4. سيولة الدم</h4>
+                <p class="text-[11px] text-gray-600">• الالتزام بنفس الوقت يومياً.<br>• مراقبة أي نزيف أو كدمات مفاجئة.</p>
+            </div>
+            <div class="prec-card border-r-4 border-amber-500 reveal">
+                <h4 class="font-bold text-amber-900 text-sm mb-1">5. الكوليسترول</h4>
+                <p class="text-[11px] text-gray-600">• الستاتينات: يفضل تناولها مساءً.<br>• تقليل الدهون المشبعة في الأكل.</p>
+            </div>
+            <div class="prec-card border-r-4 border-cyan-500 reveal">
+                <h4 class="font-bold text-cyan-900 text-sm mb-1">6. الربو</h4>
+                <p class="text-[11px] text-gray-600">• البخاخ: غسل الفم جيداً بعده.<br>• بخاخ الطوارئ متاح دائماً معك.</p>
+            </div>
+            <div class="prec-card border-r-4 border-orange-500 reveal">
+                <h4 class="font-bold text-orange-900 text-sm mb-1">7. هشاشة العظام</h4>
+                <p class="text-[11px] text-gray-600">• الكالسيوم: يفضل مع وجبة الطعام.<br>• البقاء مستقيماً بعد الجرعة بـ30د.</p>
+            </div>
+            <div class="prec-card border-r-4 border-rose-500 reveal">
+                <h4 class="font-bold text-rose-900 text-sm mb-1">8. نقص الحديد</h4>
+                <p class="text-[11px] text-gray-600">• مع فيتامين C لزيادة الامتصاص.<br>• تجنب الشاي والقهوة لمدة ساعتين.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════ CTA ══════════════ -->
+<section class="cta-gradient py-20 px-6">
+    <div class="max-w-2xl mx-auto text-center reveal">
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white mb-4">ابدأ رحلتك الصحية اليوم</h2>
+        <p class="text-emerald-100/80 mb-8 text-lg">انضم إلى تِرياقي مجاناً واجعل إدارة أدويتك أكثر ذكاءً وسهولة.</p>
+        <button onclick="openModal('register')" class="bg-white text-emerald-800 px-10 py-4 rounded-2xl font-extrabold text-lg shadow-xl hover:bg-emerald-50 transition-all hover:-translate-y-1">أنشئ حسابك الآن ←</button>
+    </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer class="bg-gray-900 py-10 px-6 text-center">
+    <div class="flex items-center justify-center gap-3 mb-4">
+        <img src="logotregy.png" alt="Teryaqi" class="w-8 h-8 object-contain opacity-60">
+        <span class="text-white/60 font-bold">تِرياقي</span>
+    </div>
+    <p class="text-gray-500 text-sm">© 2026 تِرياقي — جميع الحقوق محفوظة</p>
+</footer>
+
+<!-- ══════════════ LOGIN MODAL ══════════════ -->
+<div id="login-modal" class="modal-overlay" onclick="if(event.target===this)closeModals()">
+    <div class="modal-card">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-extrabold text-gray-800">تسجيل الدخول</h3>
+            <button onclick="closeModals()" class="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition">✕</button>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">البريد الإلكتروني</label>
+                <input type="email" id="login-email" class="auth-input" placeholder="example@mail.com" autocomplete="username">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">كلمة المرور</label>
+                <input type="password" id="login-password" class="auth-input" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <p id="login-error" class="text-xs text-red-500 font-bold hidden"></p>
+            <button id="btn-login" onclick="handleLogin()" class="btn-primary w-full py-4 text-base">تسجيل الدخول</button>
+        </div>
+        <p class="text-center text-sm text-gray-400 mt-5">ليس لديك حساب؟ <button onclick="switchModal('register')" class="text-emerald-600 font-bold hover:underline">أنشئ واحداً</button></p>
+    </div>
+</div>
+
+<!-- ══════════════ REGISTER MODAL ══════════════ -->
+<div id="register-modal" class="modal-overlay" onclick="if(event.target===this)closeModals()">
+    <div class="modal-card" style="max-width:520px">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-extrabold text-gray-800">إنشاء حساب جديد</h3>
+            <button onclick="closeModals()" class="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition">✕</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+                <label class="text-xs font-bold text-gray-500 mb-1 block">الاسم الكامل *</label>
+                <input type="text" id="reg-full-name" class="auth-input" placeholder="مثال: أحمد محمد">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">رقم الهوية *</label>
+                <input type="text" id="reg-national-id" class="auth-input" placeholder="رقم فريد">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">البريد الإلكتروني *</label>
+                <input type="email" id="reg-email" class="auth-input" placeholder="example@mail.com">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">كلمة المرور *</label>
+                <input type="password" id="reg-password" class="auth-input" placeholder="••••••••">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">الجنس *</label>
+                <select id="reg-gender" class="auth-input">
+                    <option value="">اختر</option>
+                    <option value="Male">ذكر</option>
+                    <option value="Female">أنثى</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">تاريخ الميلاد</label>
+                <input type="date" id="reg-dob" class="auth-input">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">رقم الجوال</label>
+                <input type="text" id="reg-phone" class="auth-input" placeholder="اختياري">
+            </div>
+        </div>
+        <p id="register-error" class="text-xs text-red-500 font-bold hidden mt-3"></p>
+        <button id="btn-register" onclick="handleRegister()" class="btn-primary w-full py-4 text-base mt-5">إنشاء الحساب</button>
+        <p class="text-center text-sm text-gray-400 mt-4">لديك حساب؟ <button onclick="switchModal('login')" class="text-emerald-600 font-bold hover:underline">سجّل الدخول</button></p>
+    </div>
+</div>
+
+<!-- ══════════════ SCRIPTS ══════════════ -->
+<script src="api-config.js"></script>
+<script src="auth.js"></script>
+<script>
+// ── Auth Guard: redirect if already logged in ──
+if (redirectIfAuthenticated()) { /* redirecting... */ }
+
+// ── Modal Controls ──
+function openModal(type) {
+    closeModals();
+    document.getElementById(type + '-modal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+function closeModals() {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    document.body.style.overflow = '';
+}
+function switchModal(type) {
+    closeModals();
+    setTimeout(() => openModal(type), 100);
+}
+
+// ── Login Handler ──
+async function handleLogin() {
+    const btn = document.getElementById('btn-login');
+    const errEl = document.getElementById('login-error');
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    errEl.classList.add('hidden');
+
+    if (!email || !password) { errEl.textContent = 'يرجى تعبئة جميع الحقول.'; errEl.classList.remove('hidden'); return; }
+
+    btn.disabled = true; btn.textContent = 'جارٍ التحقق...';
+    try {
+        const data = await apiLogin(email, password);
+        setSession(data.patient_id, data.full_name);
+        window.location.href = 'index.html';
+    } catch (e) {
+        errEl.textContent = e.message; errEl.classList.remove('hidden');
+    } finally {
+        btn.disabled = false; btn.textContent = 'تسجيل الدخول';
+    }
+}
+
+// ── Register Handler ──
+async function handleRegister() {
+    const btn = document.getElementById('btn-register');
+    const errEl = document.getElementById('register-error');
+    errEl.classList.add('hidden');
+
+    const body = {
+        full_name: document.getElementById('reg-full-name').value.trim(),
+        national_id: document.getElementById('reg-national-id').value.trim(),
+        email: document.getElementById('reg-email').value.trim(),
+        password: document.getElementById('reg-password').value,
+        gender: document.getElementById('reg-gender').value,
+        date_of_birth: document.getElementById('reg-dob').value || null,
+        phone: document.getElementById('reg-phone').value.trim() || null,
+    };
+
+    if (!body.full_name || !body.national_id || !body.email || !body.password || !body.gender) {
+        errEl.textContent = 'يرجى تعبئة جميع الحقول المطلوبة (*).'; errEl.classList.remove('hidden'); return;
+    }
+
+    btn.disabled = true; btn.textContent = 'جارٍ الإنشاء...';
+    try {
+        const data = await apiRegister(body);
+        if (data.patient_id) {
+            setSession(data.patient_id, body.full_name);
+            window.location.href = 'index.html';
+        }
+    } catch (e) {
+        errEl.textContent = e.message; errEl.classList.remove('hidden');
+    } finally {
+        btn.disabled = false; btn.textContent = 'إنشاء الحساب';
+    }
+}
+
+// ── Scroll Effects ──
+window.addEventListener('scroll', () => {
+    document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// ── Scroll Reveal (Intersection Observer) ──
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── Keyboard: Enter to submit, Escape to close ──
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModals();
+    if (e.key === 'Enter') {
+        if (document.getElementById('login-modal').classList.contains('active')) handleLogin();
+        if (document.getElementById('register-modal').classList.contains('active')) handleRegister();
+    }
+});
+</script>
+</body>
+</html>
